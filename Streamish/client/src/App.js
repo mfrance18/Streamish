@@ -1,12 +1,22 @@
-import React from "react";
-import SearchBar from "./components/Search";
-import VideoList from "./components/VideoList";
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router } from "react-router-dom";
+import ApplicationViews from "./components/ApplicationViews";
+import Header from "./components/Header";
+import { onLoginStatusChange } from "./modules/authManager";
 
 function App() {
+    const [isLoggedIn, setIsLoggedIn] = useState(null);
+
+    useEffect(() => {
+        onLoginStatusChange(setIsLoggedIn);
+    }, []);
+
     return (
         <div className="App">
-            <SearchBar />
-            <VideoList />
+            <Router>
+                <Header isLoggedIn={isLoggedIn} />
+                <ApplicationViews isLoggedIn={isLoggedIn} />
+            </Router>
         </div>
     );
 }

@@ -35,7 +35,8 @@ namespace Streamish.Repositories
                                 v.DateCreated VideoDateCreated,
                                 c.Id CommentId,
                                 c.Message,
-                                c.UserProfileId CommentUserProfileId
+                                c.UserProfileId CommentUserProfileId,
+                                Up.FirebaseUserId
                                 from UserProfile up
                                 LEFT JOIN Video v ON v.UserProfileId = up.Id
                                 LEFT JOIN Comment c ON c.VideoId = v.Id
@@ -52,6 +53,7 @@ namespace Streamish.Repositories
                                 {
                                     Id = DbUtils.GetInt(reader, "Id"),
                                     Name = DbUtils.GetString(reader, "Name"),
+                                    FireBaseUserId = DbUtils.GetString(reader, "FirebaseUserId"),
                                     Email = DbUtils.GetString(reader, "Email"),
                                     DateCreated = DbUtils.GetDateTime(reader, "DateCreated"),
                                     ImageUrl = DbUtils.GetString(reader, "ImageUrl"),
@@ -92,5 +94,63 @@ namespace Streamish.Repositories
             }
             return profile;
         }
+
+        public UserProfile GetByFirebaseUserId(string firebaseUserId)
+        {
+            using (var conn = Connection)
+            {
+                conn.Open();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"
+                        SELECT up.Id, Up.FirebaseUserId, up.[Name] AS UserProfileName, up.Email, up.ImageUrl, up.DateCreated
+                          FROM UserProfile up
+                         WHERE FirebaseUserId = @FirebaseuserId";
+
+                    DbUtils.AddParameter(cmd, "@FirebaseUserId", firebaseUserId);
+
+                    UserProfile profile = null;
+
+                    var reader = cmd.ExecuteReader();
+                    if (reader.Read())
+                    {
+                         profile = new UserProfile
+                        {
+                            Id = DbUtils.GetInt(reader, "Id"),
+                            Name = DbUtils.GetString(reader, "UserProfileName"),
+                            FireBaseUserId = DbUtils.GetString(reader, "FirebaseUserId"),
+                            Email = DbUtils.GetString(reader, "Email"),
+                            DateCreated = DbUtils.GetDateTime(reader, "DateCreated"),
+                            ImageUrl = DbUtils.GetString(reader, "ImageUrl"),
+                            Videos = new List<Video>()
+                        };
+                    }
+                    reader.Close();
+
+                    return profile;
+                }
+            }
+        }
+
+        public void Add(UserProfile userProfile)
+        {
+            using (var conn = Connection)
+            {
+                conn.Open();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"INSERT INTO UserProfile (FirebaseUserId, Name, Email, ImageUrl, DateCreated)
+                                        OUTPUT INSERTED.ID
+                                        VALUES (@FirebaseUserId, @Name, @Email, @ImageUrl, @DateCreated)";
+                    DbUtils.AddParameter(cmd, "@FirebaseUserId", userProfile.FireBaseUserId);
+                    DbUtils.AddParameter(cmd, "@Name", userProfile.Name);
+                    DbUtils.AddParameter(cmd, "@Email", userProfile.Email);
+                    DbUtils.AddParameter(cmd, "@ImageUrl", userProfile.ImageUrl);
+                    DbUtils.AddParameter(cmd, "@DateCreated", userProfile.DateCreated);
+                    userProfile.Id = (int)cmd.ExecuteScalar();
+                }
+            }
+        }
+
     }
 }

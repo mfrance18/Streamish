@@ -1,8 +1,20 @@
+import { getToken } from "./authManager";
 const baseUrl = '/api/video';
 
+
 export const getAllVideos = () => {
-    return fetch(`${baseUrl}/GetWithComments`)
-        .then((res) => res.json())
+    return getToken().then(token => {
+        return fetch(`${baseUrl}/GetWithComments`, {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        }).then(resp => resp.json())
+    })
+};
+
+export const getVideo = (id) => {
+    return fetch(`${baseUrl}/${id}`).then((res) => res.json());
 };
 
 export const searchVideos = (input) => {

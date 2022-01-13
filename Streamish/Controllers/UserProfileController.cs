@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Streamish.Models;
 using Streamish.Repositories;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace Streamish.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class UserProfileController : ControllerBase
@@ -20,10 +22,26 @@ namespace Streamish.Controllers
             _upRepo = videoRepository;
         }
 
-        [HttpGet]
-        public IEnumerable<string> Get()
+        [HttpGet("{firebaseUserId}")]
+        public IActionResult GetByFirebaseUserId(string firebaseUserId)
         {
-            return null;
+            var userProfile = _upRepo.GetByFirebaseUserId(firebaseUserId);
+            if (userProfile == null)
+            {
+                return NotFound();
+            }
+            return Ok(userProfile);
+        }
+
+        [HttpGet("DoesUserExist/{firebaseUserId}")]
+        public IActionResult DoesUserExist(string firebaseUserId)
+        {
+            var userProfile = _upRepo.GetByFirebaseUserId(firebaseUserId);
+            if (userProfile == null)
+            {
+                return NotFound();
+            }
+            return Ok();
         }
 
         [HttpGet("{id}")]
@@ -43,5 +61,16 @@ namespace Streamish.Controllers
             }
             return Ok(up);
         }
+
+        [HttpPost]
+        public IActionResult Register(UserProfile userProfile)
+        {
+            userProfile.DateCreated = DateTime.Now;
+            _upRepo.Add(userProfile);
+            return CreatedAtAction(
+                nameof(GetByFirebaseUserId), new { firebaseUserId = userProfile.FireBaseUserId }, userProfile);
+        }
+
+
     }
 }
